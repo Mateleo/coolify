@@ -42,9 +42,9 @@ const createDockerfile = async (data, image): Promise<void> => {
 	}
 
 	try {
-		await fs.stat(`${workdir}${baseDirectory || ''}/requirements.txt`);
-		Dockerfile.push(`COPY .${baseDirectory || ''}/requirements.txt ./`);
-		Dockerfile.push(`RUN pip install --no-cache-dir -r .${baseDirectory || ''}/requirements.txt`);
+		await fs.stat(`${workdir}${baseDirectory || ''}requirements.txt`);
+		Dockerfile.push(`COPY .${baseDirectory || ''}requirements.txt ./`);
+		Dockerfile.push(`RUN pip install --no-cache-dir -r .${baseDirectory || ''}requirements.txt`);
 	} catch (e) {
 		//
 	}
