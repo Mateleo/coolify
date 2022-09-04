@@ -41,13 +41,16 @@ fi
 
 if [ -z ${DO_NOT_TRACK+0} ]; then
     DO_NOT_TRACK=0
-else 
+else
     if [ ${DO_NOT_TRACK} -eq 1 ]; then
         doNotTrack
     fi
 fi
 
-die() { echo "$*" >&2; exit 2; }
+die() {
+    echo "$*" >&2
+    exit 2
+}
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 errorchecker() {
     exitCode=$?
@@ -57,30 +60,30 @@ errorchecker() {
     fi
 }
 doNotTrack() {
-      DO_NOT_TRACK=1
-      COOLIFY_SENTRY_DSN=
-      COOLIFY_APP_ID=
+    DO_NOT_TRACK=1
+    COOLIFY_SENTRY_DSN=
+    COOLIFY_APP_ID=
 }
 
-restartCoolify() {  
+restartCoolify() {
     if [ -f "$COOLIFY_CONF_FOUND" ]; then
         echo "Restarting Coolify."
-        cd ~/coolify && sudo docker run --rm -tid --env-file $COOLIFY_CONF_FOUND -v /var/run/docker.sock:/var/run/docker.sock -v coolify-db-sqlite coollabsio/coolify:$VERSION /bin/sh -c "env | grep COOLIFY > .env && docker compose up -d --force-recreate" > /dev/null
+        cd ~/coolify && sudo docker run --rm -tid --env-file $COOLIFY_CONF_FOUND -v /var/run/docker.sock:/var/run/docker.sock -v coolify-db-sqlite coollabsio/coolify:$VERSION /bin/sh -c "env | grep COOLIFY > .env && docker compose up -d --force-recreate" >/dev/null
         exit 0
-    else 
+    else
         echo "Coolify never installed on this server. Cannot restart."
         exit 1
     fi
 }
 
 while getopts hvdfrnawi:x:-: OPT; do
-  if [ "$OPT" = "-" ]; then
-    OPT="${OPTARG%%=*}"
-    OPTARG="${OPTARG#$OPT}" 
-    OPTARG="${OPTARG#=}"
-  fi
-  case "$OPT" in
-    h | help ) 
+    if [ "$OPT" = "-" ]; then
+        OPT="${OPTARG%%=*}"
+        OPTARG="${OPTARG#$OPT}"
+        OPTARG="${OPTARG#=}"
+    fi
+    case "$OPT" in
+    h | help)
         echo -e "Coolify installer $VERSION
 (source code: https://github.com/coollabsio/get.coollabs.io/blob/main/static/coolify/install.sh)\n
 Usage: install.sh [options...] 
@@ -99,34 +102,44 @@ Usage: install.sh [options...]
     -i, --white-labeled-logo    Add your remote logo for your white-labeled version. Should be a http/https URL.
 
     -x, --force-version         Force installation of a specific version of Coolify."
-    exit 1;
-    ;;
-    d | debug )                 DEBUG=1; set -x;;
-    f | force )                 FORCE=1;;
-    v | version )               echo "$VERSION" && exit 1;;
-    r | restart )               restartCoolify;;
-    n | do-not-track )          doNotTrack;;
-    a | auto-update )           COOLIFY_AUTO_UPDATE="true";;
-    w | white-labeled )         COOLIFY_WHITE_LABELED="true";;
-    i | white-labeled-logo )    needs_arg; COOLIFY_WHITE_LABELED_ICON="$OPTARG"; COOLIFY_WHITE_LABELED="true";;
-    x | force-version)          needs_arg; VERSION="$OPTARG";;
-    ??* )                       die "Illegal option --$OPT";;
-    ? )                         exit 2 ;;
-  esac
+        exit 1
+        ;;
+    d | debug)
+        DEBUG=1
+        set -x
+        ;;
+    f | force) FORCE=1 ;;
+    v | version) echo "$VERSION" && exit 1 ;;
+    r | restart) restartCoolify ;;
+    n | do-not-track) doNotTrack ;;
+    a | auto-update) COOLIFY_AUTO_UPDATE="true" ;;
+    w | white-labeled) COOLIFY_WHITE_LABELED="true" ;;
+    i | white-labeled-logo)
+        needs_arg
+        COOLIFY_WHITE_LABELED_ICON="$OPTARG"
+        COOLIFY_WHITE_LABELED="true"
+        ;;
+    x | force-version)
+        needs_arg
+        VERSION="$OPTARG"
+        ;;
+    ??*) die "Illegal option --$OPT" ;;
+    ?) exit 2 ;;
+    esac
 done
 
-shift $((OPTIND-1))
+shift $((OPTIND - 1))
 trap 'errorchecker' EXIT
 
 if [ $DEBUG -eq 1 ]; then
-    echo "FORCE=$FORCE" 
+    echo "FORCE=$FORCE"
     echo "COOLIFY_APP_ID=$COOLIFY_APP_ID"
     echo "COOLIFY_SECRET_KEY=$COOLIFY_SECRET_KEY"
     echo "COOLIFY_DATABASE_URL=${COOLIFY_DATABASE_URL:-../db/prod.db}"
     echo "COOLIFY_SENTRY_DSN=$COOLIFY_SENTRY_DSN"
     echo "COOLIFY_HOSTED_ON=${COOLIFY_HOSTED_ON:-docker}"
     echo "COOLIFY_WHITE_LABELED=$COOLIFY_WHITE_LABELED"
-    echo "COOLIFY_WHITE_LABELED_ICON=$COOLIFY_WHITE_LABELED_ICON" 
+    echo "COOLIFY_WHITE_LABELED_ICON=$COOLIFY_WHITE_LABELED_ICON"
     echo "COOLIFY_AUTO_UPDATE=$COOLIFY_AUTO_UPDATE"
 fi
 if [ $FORCE -eq 1 ]; then
@@ -149,16 +162,15 @@ if [ $WHO != 'root' ]; then
     exit 1
 fi
 
-
 restartDocker() {
-   # Restarting docker daemon
-   sudo systemctl daemon-reload
-   sudo systemctl restart docker
+    # Restarting docker daemon
+    sudo systemctl daemon-reload
+    sudo systemctl restart docker
 }
 
 dockerConfiguration() {
     mkdir -p /etc/docker/ /var/snap/docker/current/config/
-    cat <<EOF | tee /etc/docker/daemon.json  /var/snap/docker/current/config/daemon.json > /dev/null
+    cat <<EOF | tee /etc/docker/daemon.json /var/snap/docker/current/config/daemon.json >/dev/null
 {
     "log-driver": "json-file",
     "log-opts": {
@@ -183,7 +195,7 @@ dockerConfiguration() {
 EOF
 }
 saveCoolifyConfiguration() {
-      echo "TAG=$VERSION
+    echo "TAG=$VERSION
 COOLIFY_APP_ID=$COOLIFY_APP_ID
 COOLIFY_SECRET_KEY=$COOLIFY_SECRET_KEY
 COOLIFY_DATABASE_URL=file:../db/prod.db
@@ -191,7 +203,7 @@ COOLIFY_SENTRY_DSN=$COOLIFY_SENTRY_DSN
 COOLIFY_HOSTED_ON=docker
 COOLIFY_WHITE_LABELED=$COOLIFY_WHITE_LABELED 
 COOLIFY_WHITE_LABELED_ICON=$COOLIFY_WHITE_LABELED_ICON
-COOLIFY_AUTO_UPDATE=$COOLIFY_AUTO_UPDATE" > $COOLIFY_CONF_FOUND
+COOLIFY_AUTO_UPDATE=$COOLIFY_AUTO_UPDATE" >$COOLIFY_CONF_FOUND
 }
 # Check docker version
 if [ ! -x "$(command -v docker)" ]; then
@@ -244,7 +256,7 @@ if [ -f "/etc/docker/daemon.json" ] || [ -f "/var/snap/docker/current/config/dae
         echo 'Configuring Docker daemon.'
         dockerConfiguration
     else
-      while true; do
+        while true; do
             read -p "Docker already configured. I will overwrite it, okay? [Yy/Nn] " yn
             case $yn in
             [Yy]*)
@@ -263,7 +275,7 @@ if [ -f "/etc/docker/daemon.json" ] || [ -f "/var/snap/docker/current/config/dae
 else
     # Adding docker daemon configuration
     mkdir -p /etc/docker/ /var/snap/docker/current/config/
-    cat <<EOF | tee /etc/docker/daemon.json  /var/snap/docker/current/config/daemon.json > /dev/null
+    cat <<EOF | tee /etc/docker/daemon.json /var/snap/docker/current/config/daemon.json >/dev/null
 {
     "log-driver": "json-file",
     "log-opts": {
@@ -299,7 +311,7 @@ if [ ! -x ~/.docker/cli-plugins/docker-compose ]; then
     if [ ARCH == 'arm64' ] || [ ARCH == 'aarch64' ]; then
         sudo curl --silent -SL https://cdn.coollabs.io/bin/linux/arm64/docker-compose-linux-2.6.1 -o ~/.docker/cli-plugins/docker-compose
         sudo chmod +x ~/.docker/cli-plugins/docker-compose
-    else 
+    else
         sudo curl --silent -SL https://cdn.coollabs.io/bin/linux/amd64/docker-compose-linux-2.6.1 -o ~/.docker/cli-plugins/docker-compose
         sudo chmod +x ~/.docker/cli-plugins/docker-compose
     fi
@@ -310,29 +322,29 @@ if [ $FORCE -eq 1 ]; then
 else
     if [ -f "$COOLIFY_CONF_FOUND" ]; then
         while true; do
-                    read -p "Coolify configuration found (${COOLIFY_CONF_FOUND}). I will overwrite it, okay?  [Yy/Nn] " yn
-                    case $yn in
-                    [Yy]*)
-                        saveCoolifyConfiguration
-                        break
-                        ;;
-                    [Nn]*)
-                        break
-                        ;;
-                    *) echo "Please answer Y or N." ;;
-                    esac
-                done
-        else
-            saveCoolifyConfiguration
+            read -p "Coolify configuration found (${COOLIFY_CONF_FOUND}). I will overwrite it, okay?  [Yy/Nn] " yn
+            case $yn in
+            [Yy]*)
+                saveCoolifyConfiguration
+                break
+                ;;
+            [Nn]*)
+                break
+                ;;
+            *) echo "Please answer Y or N." ;;
+            esac
+        done
+    else
+        saveCoolifyConfiguration
     fi
 fi
 if [ $FORCE -ne 1 ]; then
     echo "Installing Coolify."
 fi
 echo "Pulling Coolify latest image ($VERSION)."
-sudo docker pull -q mateleo/coolify:latest > /dev/null
+sudo docker pull -q mateleo/coolify:latest >/dev/null
 echo "Starting Coolify."
-cd ~/coolify && sudo docker run -tid --env-file $COOLIFY_CONF_FOUND -v /var/run/docker.sock:/var/run/docker.sock -v coolify-db-sqlite coollabsio/coolify:$VERSION /bin/sh -c "env | grep COOLIFY > .env && docker compose up -d --force-recreate" > /dev/null
+cd ~/coolify && sudo docker run -tid --env-file $COOLIFY_CONF_FOUND -v /var/run/docker.sock:/var/run/docker.sock -v coolify-db-sqlite mateleo/coolify:latest /bin/sh -c "env | grep COOLIFY > .env && docker compose up -d --force-recreate" >/dev/null
 
 echo -e "Congratulations! Your Coolify instance is ready to use.\n"
 echo "Please visit http://$(curl -4s https://ifconfig.io):3000 to get started."
